@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Nutri - Proverena Veza</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --p: #00dc82; --b: #0b0f1a; --k: #161b2c; --t: #ffffff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: var(--b); color: var(--t); display: flex; justify-content: center; padding: 40px 20px; }
+        .container { max-width: 650px; width: 100%; }
+        header { text-align: center; margin-bottom: 30px; }
+        header h1 span { color: var(--p); }
+        .box { background: var(--k); padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        textarea { width: 100%; height: 120px; background: #1f2638; border: 2px solid #2d3748; border-radius: 12px; padding: 15px; color: white; font-size: 1rem; resize: none; outline: none; margin-bottom: 20px; }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; background: var(--p); color: #052e16; font-size: 1rem; }
+        button:disabled { opacity: 0.5; }
+        #rezultat { margin-top: 30px; background: white; color: #1a202c; border-radius: 20px; padding: 30px; display: none; }
+        #tekst { white-space: pre-line; line-height: 1.6; font-size: 1.05rem; }
+        .err { color: #ff4d4d; margin-top: 15px; display: none; text-align: center; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>AI<span>Nutri</span></h1>
+        <p style="color:#a0aec0">Korišćenje gemini-flash-latest modela</p>
+    </header>
+
+    <div class="box">
+        <textarea id="unos" placeholder="Šta želite da kuvate? (npr. piletina i spanać)"></textarea>
+        <button onclick="generisi()" id="btn">Napravi Zdrav Obrok ✨</button>
+        <div id="debug" class="err"></div>
+    </div>
+
+    <article id="rezultat">
+        <h2 style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Vaš Recept</h2>
+        <div id="tekst"></div>
+    </article>
+</div>
+
+<script>
+    // TVOJ KLJUČ
+    const API_KEY = "AIzaSyBE2daATK3Zz9FvWszs0wRH40HYDtJBIhA";
+
+    async function generisi() {
+        const unos = document.getElementById('unos').value.trim();
+        const btn = document.getElementById('btn');
+        const debug = document.getElementById('debug');
+        const rezBox = document.getElementById('rezultat');
+
+        if (!unos) return alert("Unesite namirnice!");
+
+        btn.innerText = "Slanje zahteva serveru...";
+        btn.disabled = true;
+        debug.style.display = "none";
+        rezBox.style.display = "none";
+
+        // URL KOJI SI POSLAO (v1beta + gemini-flash-latest)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Ti si nutricionista. Napravi kratak zdrav recept na srpskom koristeći: ${unos}. Na kraju napiši kalorije.`
+                        }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            if (data.candidates && data.candidates[0].content) {
+                document.getElementById('tekst').innerText = data.candidates[0].content.parts[0].text;
+                rezBox.style.display = "block";
+            } else {
+                throw new Error("Google nije vratio odgovor. Pokušajte ponovo.");
+            }
+
+        } catch (e) {
+            debug.innerText = "Greška: " + e.message;
+            debug.style.display = "block";
+            console.error(e);
+        } finally {
+            btn.innerText = "Napravi Zdrav Obrok ✨";
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
